@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Family Calendar at-a-Glance | July 2026 - April 2027</title>
+<style>
+  :root {
+    --ink: #10213f;
+    --muted: #64748b;
+    --line: #d7dee8;
+    --paper: #ffffff;
+    --bg: #f5f7fb;
+    --booked: #174b93;
+    --booked2: #2d6fce;
+    --available: #3f8f3b;
+    --available2: #67b35e;
+    --open: #e8f5e5;
+    --open-border: #c9dfc5;
+    --warn: #f3b216;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color: var(--ink);
+    background: linear-gradient(180deg, #ffffff 0%, var(--bg) 100%);
+  }
+  .page { max-width: 1500px; margin: 0 auto; padding: 28px 24px 40px; }
+  header { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; margin-bottom: 18px; }
+  h1 { margin: 0; font-size: clamp(30px, 4vw, 54px); letter-spacing: .03em; line-height: 1; text-transform: uppercase; }
+  .subtitle { margin-top: 8px; font-size: 20px; color: var(--muted); font-weight: 650; letter-spacing: .05em; text-transform: uppercase; }
+  .legend { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; justify-content: flex-end; }
+  .legend span { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 700; color: #263b5e; }
+  .swatch { width: 18px; height: 18px; border-radius: 5px; display: inline-block; box-shadow: inset 0 0 0 1px rgba(0,0,0,.08); }
+  .swatch.booked { background: var(--booked); }
+  .swatch.available { background: var(--available); }
+  .swatch.open { background: var(--open); border: 1px solid var(--open-border); }
+  .swatch.warn { background: var(--warn); }
+  .calendar-grid { display: grid; grid-template-columns: repeat(5, minmax(230px, 1fr)); gap: 16px; }
+  .month {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 10px 24px rgba(16, 33, 63, .07);
+  }
+  .month-title { background: var(--ink); color: #fff; padding: 10px 12px; text-align: center; font-weight: 850; letter-spacing: .06em; }
+  .weekday-row, .days { display: grid; grid-template-columns: repeat(7, 1fr); }
+  .weekday-row div { text-align: center; padding: 8px 0 7px; font-size: 12px; font-weight: 800; color: #314768; background: #f0f3f8; border-bottom: 1px solid var(--line); }
+  .day {
+    min-height: 42px;
+    padding: 5px 4px;
+    border-right: 1px solid #eef2f6;
+    border-bottom: 1px solid #eef2f6;
+    position: relative;
+    background: #fff;
+  }
+  .day:nth-child(7n) { border-right: none; }
+  .day.blank { background: #fafbfe; }
+  .date-number { font-size: 13px; font-weight: 750; display: inline-flex; width: 24px; height: 24px; align-items: center; justify-content: center; border-radius: 7px; }
+  .day.open { background: var(--open); }
+  .day.booked { background: linear-gradient(135deg, var(--booked), var(--booked2)); color: white; }
+  .day.available { background: linear-gradient(135deg, var(--available), var(--available2)); color: white; }
+  .day.warn { background: var(--warn); color: #261a00; }
+  .day.booked .date-number, .day.available .date-number { color: white; }
+  .dot-row { position: absolute; left: 6px; right: 6px; bottom: 5px; display: flex; gap: 3px; flex-wrap: wrap; }
+  .dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; opacity: .78; }
+  .day[data-tip] { cursor: help; }
+  .day[data-tip]:hover::after {
+    content: attr(data-tip);
+    position: absolute;
+    z-index: 20;
+    left: 50%;
+    bottom: calc(100% + 8px);
+    transform: translateX(-50%);
+    width: max-content;
+    max-width: 310px;
+    white-space: pre-line;
+    background: #0b1730;
+    color: white;
+    padding: 10px 12px;
+    border-radius: 10px;
+    box-shadow: 0 12px 30px rgba(0,0,0,.22);
+    font-size: 12px;
+    line-height: 1.35;
+  }
+  .day[data-tip]:hover::before {
+    content: "";
+    position: absolute;
+    z-index: 21;
+    left: 50%;
+    bottom: calc(100% + 2px);
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-top-color: #0b1730;
+  }
+  .bottom { display: grid; grid-template-columns: 1.1fr .9fr; gap: 18px; margin-top: 20px; }
+  .panel { background: rgba(255,255,255,.86); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 10px 24px rgba(16,33,63,.06); padding: 16px; }
+  .panel h2 { margin: 0 0 12px; font-size: 18px; text-transform: uppercase; letter-spacing: .04em; }
+  .event-list { columns: 2; column-gap: 28px; margin: 0; padding: 0; list-style: none; }
+  .event-list li { break-inside: avoid; display: grid; grid-template-columns: 92px 1fr; gap: 8px; padding: 6px 0; font-size: 13px; border-bottom: 1px solid #edf1f6; }
+  .pill { display: inline-flex; align-items: center; justify-content: center; height: 22px; border-radius: 999px; padding: 0 8px; color: white; font-size: 11px; font-weight: 800; text-transform: uppercase; }
+  .pill.booked { background: var(--booked); }
+  .pill.available { background: var(--available); }
+  .pill.open { background: #9fb78f; color: #163113; }
+  .gap-list { margin: 0; padding-left: 18px; font-size: 14px; line-height: 1.7; }
+  details { margin-top: 18px; }
+  summary { cursor: pointer; font-weight: 850; color: var(--ink); }
+  textarea { width: 100%; min-height: 260px; margin-top: 10px; font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; border: 1px solid var(--line); border-radius: 12px; padding: 12px; color: #1e293b; background: #fbfdff; }
+  .note { color: var(--muted); font-size: 12px; margin-top: 10px; }
+  @media (max-width: 1100px) { .calendar-grid { grid-template-columns: repeat(2, minmax(230px, 1fr)); } .bottom { grid-template-columns: 1fr; } header { align-items: flex-start; flex-direction: column; } .legend { justify-content: flex-start; } }
+  @media print { body { background: white; } .page { max-width: none; padding: 10mm; } details { display: none; } .month, .panel { box-shadow: none; } .calendar-grid { gap: 8px; } .day { min-height: 34px; } }
+
+  /* Floating tooltip is attached to the viewport instead of each day cell.
+     This prevents hover text from being clipped by the rounded month card. */
+  .day[data-tip]:hover::after,
+  .day[data-tip]:hover::before { content: none !important; display: none !important; }
+  #floatingTooltip {
+    position: fixed;
+    z-index: 9999;
+    display: none;
+    max-width: min(360px, calc(100vw - 24px));
+    white-space: pre-line;
+    pointer-events: none;
+    background: #0b1730;
+    color: white;
+    padding: 10px 12px;
+    border-radius: 10px;
+    box-shadow: 0 12px 30px rgba(0,0,0,.22);
+    font-size: 12px;
+    line-height: 1.35;
+  }
+  #floatingTooltip.visible { display: block; }
+
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <div>
+      <h1>Family Calendar At-a-Glance</h1>
+      <div class="subtitle">July 1, 2026 - April 30, 2027</div>
+    </div>
+    <div class="legend" aria-label="Calendar legend">
+      <span><i class="swatch booked"></i>Booked / Busy</span>
+      <span><i class="swatch available"></i>Available Break</span>
+      <span><i class="swatch open"></i>Open Gap</span>
+      <span><i class="swatch warn"></i>One-Day Available Event</span>
+    </div>
+  </header>
+
+  <main id="calendar" class="calendar-grid"></main>
+
+  <section class="bottom">
+    <div class="panel">
+      <h2>Seeded Date Ranges</h2>
+      <ul id="eventList" class="event-list"></ul>
+    </div>
+    <div class="panel">
+      <h2>Longest Open Travel Gaps</h2>
+      <ul id="gapList" class="gap-list"></ul>
+      <p class="note">Open gaps are automatically calculated as dates with no Booked item. Green break ranges are included as available travel time.</p>
+    </div>
+  </section>
+
+  <details open>
+    <summary>Edit schedule inputs in one place</summary>
+    <p class="note">Edit the stacked lines below in the HTML source. Format: <strong>YYYY-MM-DD to YYYY-MM-DD | Status | Label</strong>. For one-day items, use the same start and end date.</p>
+    <textarea id="inputsView" spellcheck="false"></textarea>
+  </details>
+</div>
+<div id="floatingTooltip" role="tooltip"></div>
+
+<script>
+/*
+  EDIT SCHEDULE HERE ONLY.
+  Format: YYYY-MM-DD to YYYY-MM-DD | Status | Label
+  Status options used by this page: Booked, Available, Open, One-Day Available
+*/
+const SCHEDULE_INPUTS = `
+2026-07-03 to 2026-07-05 | Booked | Nick and Erin visit to house
+2026-07-05 to 2026-07-08 | Booked | Danny in Oregon
+2026-07-09 to 2026-07-10 | Booked | Summer Wellness for Emma & Maya
+2026-07-11 to 2026-07-15 | Booked | Danny, Dylan, Leia in Michigan
+2026-07-16 to 2026-07-17 | Booked | Summer Wellness for Emma & Maya
+2026-07-18 to 2026-07-18 | Booked | Jerry Seinfeld at Foxwoods
+2026-07-27 to 2026-07-31 | Booked | iLottery Launch in MA (maybe in Boston)
+2026-08-03 to 2026-08-06 | Booked | Leia Soccer Camp
+2026-08-17 to 2026-08-19 | Booked | High School Orientation
+2026-08-21 to 2026-08-21 | Booked | High School Orientation
+2026-08-20 to 2026-08-20 | One-Day Available | Modest Mouse in MA
+2026-08-26 to 2026-08-26 | Booked | First day of school
+2026-09-20 to 2026-09-25 | Booked | Danny conference in Orlando, FL
+2026-10-24 to 2026-10-26 | Booked | Allie's wedding in MI
+2026-11-06 to 2026-11-08 | Booked | Danny and Dylan; Lions in Miami, FL
+2026-11-26 to 2026-11-29 | Available | Thanksgiving Break
+2026-12-24 to 2027-01-03 | Available | Christmas Break
+2027-02-13 to 2027-02-16 | Available | Winter Break
+2027-04-10 to 2027-04-18 | Available | Spring Break
+`.trim();
+
+const CALENDAR_START = '2026-07-01';
+const CALENDAR_END = '2027-04-30';
+const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const dayNames = ['S','M','T','W','T','F','S'];
+
+function parseLocalDate(s) {
+  const [y,m,d] = s.trim().split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+function key(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function addDays(d, n) {
+  const out = new Date(d);
+  out.setDate(out.getDate() + n);
+  return out;
+}
+function fmt(d) {
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+}
+function fmtRange(start, end) {
+  if (key(start) === key(end)) return fmt(start);
+  const sameYear = start.getFullYear() === end.getFullYear();
+  const sameMonth = sameYear && start.getMonth() === end.getMonth();
+  if (sameMonth) return `${start.toLocaleDateString(undefined,{month:'short'})} ${start.getDate()}-${end.getDate()}, ${end.getFullYear()}`;
+  if (sameYear) return `${start.toLocaleDateString(undefined,{month:'short', day:'numeric'})} - ${end.toLocaleDateString(undefined,{month:'short', day:'numeric', year:'numeric'})}`;
+  return `${fmt(start)} - ${fmt(end)}`;
+}
+function parseInputs(text) {
+  return text.split('\n').map(line => line.trim()).filter(Boolean).map((line, idx) => {
+    const parts = line.split('|').map(p => p.trim());
+    if (parts.length < 3) throw new Error(`Bad schedule line ${idx + 1}: ${line}`);
+    const [startText, endText] = parts[0].split(/\s+to\s+/i).map(p => p.trim());
+    const start = parseLocalDate(startText);
+    const end = parseLocalDate(endText || startText);
+    return { start, end, status: parts[1], label: parts.slice(2).join(' | '), source: line };
+  });
+}
+function statusClass(status) {
+  const s = status.toLowerCase();
+  if (s.includes('one-day')) return 'warn';
+  if (s.includes('booked')) return 'booked';
+  if (s.includes('available')) return 'available';
+  return 'open';
+}
+const entries = parseInputs(SCHEDULE_INPUTS);
+const byDate = new Map();
+for (const entry of entries) {
+  for (let d = new Date(entry.start); d <= entry.end; d = addDays(d, 1)) {
+    const k = key(d);
+    if (!byDate.has(k)) byDate.set(k, []);
+    byDate.get(k).push(entry);
+  }
+}
+function bestStatus(items) {
+  if (!items || !items.length) return 'open';
+  if (items.some(i => statusClass(i.status) === 'booked')) return 'booked';
+  if (items.some(i => statusClass(i.status) === 'warn')) return 'warn';
+  if (items.some(i => statusClass(i.status) === 'available')) return 'available';
+  return 'open';
+}
+function tipFor(date, items) {
+  const header = date.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+  if (!items || !items.length) return `${header}\nOpen gap: no listed commitment.`;
+  return header + '\n' + items.map(i => `${i.status}: ${i.label}\n${fmtRange(i.start, i.end)}`).join('\n\n');
+}
+function renderMonth(year, monthIndex) {
+  const first = new Date(year, monthIndex, 1);
+  const last = new Date(year, monthIndex + 1, 0);
+  const month = document.createElement('section');
+  month.className = 'month';
+  month.innerHTML = `<div class="month-title">${monthNames[monthIndex]} ${year}</div><div class="weekday-row">${dayNames.map(d => `<div>${d}</div>`).join('')}</div><div class="days"></div>`;
+  const days = month.querySelector('.days');
+  for (let i = 0; i < first.getDay(); i++) days.appendChild(Object.assign(document.createElement('div'), { className: 'day blank' }));
+  for (let day = 1; day <= last.getDate(); day++) {
+    const d = new Date(year, monthIndex, day);
+    const inRange = d >= parseLocalDate(CALENDAR_START) && d <= parseLocalDate(CALENDAR_END);
+    const items = byDate.get(key(d)) || [];
+    const status = inRange ? bestStatus(items) : '';
+    const el = document.createElement('div');
+    el.className = `day ${inRange ? status : 'blank'}`;
+    el.dataset.tip = inRange ? tipFor(d, items) : '';
+    if (inRange) el.tabIndex = 0;
+    el.innerHTML = `<span class="date-number">${day}</span>${items.length > 1 ? `<div class="dot-row">${items.map(() => '<i class="dot"></i>').join('')}</div>` : ''}`;
+    days.appendChild(el);
+  }
+  return month;
+}
+function renderCalendar() {
+  const start = parseLocalDate(CALENDAR_START);
+  const end = parseLocalDate(CALENDAR_END);
+  const target = document.getElementById('calendar');
+  for (let y = start.getFullYear(), m = start.getMonth(); y < end.getFullYear() || (y === end.getFullYear() && m <= end.getMonth()); ) {
+    target.appendChild(renderMonth(y, m));
+    m++; if (m > 11) { m = 0; y++; }
+  }
+}
+function renderEvents() {
+  const ul = document.getElementById('eventList');
+  entries.forEach(e => {
+    const li = document.createElement('li');
+    const cls = statusClass(e.status);
+    li.innerHTML = `<span class="pill ${cls}">${e.status.replace('One-Day Available','1-Day')}</span><span><strong>${fmtRange(e.start, e.end)}</strong><br>${e.label}</span>`;
+    ul.appendChild(li);
+  });
+}
+function renderGaps() {
+  const start = parseLocalDate(CALENDAR_START);
+  const end = parseLocalDate(CALENDAR_END);
+  const gaps = [];
+  let gapStart = null;
+  for (let d = new Date(start); d <= end; d = addDays(d, 1)) {
+    const items = byDate.get(key(d)) || [];
+    const isBooked = items.some(i => statusClass(i.status) === 'booked');
+    if (!isBooked && !gapStart) gapStart = new Date(d);
+    if ((isBooked || key(d) === key(end)) && gapStart) {
+      const gapEnd = isBooked ? addDays(d, -1) : new Date(d);
+      const days = Math.round((gapEnd - gapStart) / 86400000) + 1;
+      if (days >= 5) gaps.push({ start: gapStart, end: gapEnd, days });
+      gapStart = null;
+    }
+  }
+  gaps.sort((a,b) => b.days - a.days);
+  const ul = document.getElementById('gapList');
+  gaps.slice(0, 12).forEach(g => {
+    const li = document.createElement('li');
+    li.textContent = `${fmtRange(g.start, g.end)} (${g.days} days)`;
+    ul.appendChild(li);
+  });
+}
+
+function initFloatingTooltips() {
+  const tooltip = document.getElementById('floatingTooltip');
+  const calendar = document.getElementById('calendar');
+  if (!tooltip || !calendar) return;
+
+  function positionTooltip(anchor) {
+    const rect = anchor.getBoundingClientRect();
+    const margin = 12;
+    tooltip.classList.add('visible');
+    const tipRect = tooltip.getBoundingClientRect();
+
+    let left = rect.left + rect.width / 2 - tipRect.width / 2;
+    left = Math.max(margin, Math.min(left, window.innerWidth - tipRect.width - margin));
+
+    let top = rect.top - tipRect.height - 10;
+    if (top < margin) top = rect.bottom + 10;
+    if (top + tipRect.height > window.innerHeight - margin) {
+      top = Math.max(margin, window.innerHeight - tipRect.height - margin);
+    }
+
+    tooltip.style.left = `${left}px`;
+    tooltip.style.top = `${top}px`;
+  }
+
+  function show(anchor) {
+    const text = anchor.getAttribute('data-tip');
+    if (!text) return;
+    tooltip.textContent = text;
+    tooltip.classList.add('visible');
+    positionTooltip(anchor);
+  }
+
+  function hide() {
+    tooltip.classList.remove('visible');
+  }
+
+  calendar.addEventListener('mouseover', event => {
+    const day = event.target.closest('.day[data-tip]');
+    if (!day || !calendar.contains(day)) return;
+    show(day);
+  });
+  calendar.addEventListener('mousemove', event => {
+    const day = event.target.closest('.day[data-tip]');
+    if (!day || !calendar.contains(day) || !tooltip.classList.contains('visible')) return;
+    positionTooltip(day);
+  });
+  calendar.addEventListener('mouseout', event => {
+    const day = event.target.closest('.day[data-tip]');
+    if (!day || !calendar.contains(day)) return;
+    if (!day.contains(event.relatedTarget)) hide();
+  });
+  calendar.addEventListener('focusin', event => {
+    const day = event.target.closest('.day[data-tip]');
+    if (day) show(day);
+  });
+  calendar.addEventListener('focusout', hide);
+  window.addEventListener('scroll', hide, { passive: true });
+  window.addEventListener('resize', hide);
+}
+
+renderCalendar();
+renderEvents();
+renderGaps();
+document.getElementById('inputsView').value = SCHEDULE_INPUTS;
+initFloatingTooltips();
+</script>
+</body>
+</html>
